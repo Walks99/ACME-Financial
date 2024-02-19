@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache'; // This will allow us to clear the cache for the invoices page and trigger a new request to the server when an invoice is added.
 import { redirect } from 'next/navigation'; // This will allow us to redirect the user back to the invoices page after the invoice has been created and submitted to the database.
+import { signIn } from '@/auth';
+import { AuthError } from 'next-auth';
  
 const FormSchema = z.object({
   id: z.string(),
@@ -126,6 +128,27 @@ export async function deleteInvoice(id: string) {
         return {
             message: 'Database Error: Failed to Delete Invoice.'
         }
+    }
+  }
+  // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  // ------------------------------------------------------------
+  export async function authenticate(
+    prevState: string | undefined,
+    formData: FormData,
+  ) {
+    try {
+      await signIn('credentials', formData);
+    } catch (error) {
+      if (error instanceof AuthError) {
+        switch (error.type) {
+          case 'CredentialsSignin':
+            return 'Invalid credentials.';
+          default:
+            return 'Something went wrong.';
+        }
+      }
+      throw error;
     }
   }
   // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
