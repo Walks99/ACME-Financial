@@ -25,11 +25,18 @@ export async function createInvoice(formData: FormData) {
   const amountInCents = amount * 100; // convert to cents
   const date = new Date().toISOString().split('T')[0]; // Set the invoice's creation date
 
-  // Insert the new invoice into the database
+  try {
+      // Insert the new invoice into the database
   await sql`
   INSERT INTO invoices (customer_id, amount, status, date)
   VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
 `;
+  } catch (error) {
+    return {
+        message: 'Database Error: Failed to Create Invoice.',
+    };
+  }
+
 revalidatePath('/dashboard/invoices'); // Clear the cache for the invoices page a fetch the fresh data from the server once the database has been updated with the new invoice.
 redirect('/dashboard/invoices'); // Redirect the user back to the invoices page after the invoice has been created and submitted to the database.
 }
@@ -50,12 +57,18 @@ export async function updateInvoice(id: string, formData: FormData) {
  
   const amountInCents = amount * 100;
  
-  await sql`
+  try {
+    await sql`
     UPDATE invoices
     SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
     WHERE id = ${id}
   `;
- 
+  } catch (error) {
+    return {
+        messge: 'Database Error: Failed to Update Invoice.',
+    }
+  }
+
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
@@ -63,7 +76,17 @@ export async function updateInvoice(id: string, formData: FormData) {
 
 // ------------------------------------------------------------
 export async function deleteInvoice(id: string) {
-    await sql`DELETE FROM invoices WHERE id = ${id}`;
-    revalidatePath('/dashboard/invoices');
+    throw new Error('Failed to Delete Invoice');
+    try {
+        await sql`DELETE FROM invoices WHERE id = ${id}`;
+        revalidatePath('/dashboard/invoices');
+        return {
+            message: 'Invoice Deleted.'
+        }
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Delete Invoice.'
+        }
+    }
   }
   // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
